@@ -1,12 +1,11 @@
 import os
 import pandas as pd
-import mysql.connector
-from openpyxl import load_workbook
 from datetime import datetime, timedelta
 
 from create_db_mysql import *
 from validation_functions import *
-from database import connect_to_database
+from data_entry_transfer import *
+from database_connect import connect_to_database
 from mongo_post import *
 
 
@@ -44,9 +43,7 @@ def login_menu_choice():
     print('--------Menu--------')
     print('1. Update the account details')
     print('2. Post a message')
-    print('3. Delete the account')
-    print('4. Logout')
-
+    print('3. Logout')
 
 def login_menu():    
     while True:  
@@ -61,7 +58,6 @@ def login_menu():
             user_choice = post_message()
             if user_choice:
                 ptitle, pmessage = user_choice
-                #add_message(username, ptitle, pmessage) 
                 collection.insert_one({
                     "Username": username,
                     "Title": ptitle,
@@ -71,11 +67,8 @@ def login_menu():
             client.close()
         
         elif choose == '3':
-            delete_user_data()
-                    
-        elif choose == '4':   
             print('You chose to logout, See you another time.')  
-            delete_old_data(csv_file)
+            #delete_old_data(csv_file)
             exit()
 
         else:
@@ -84,64 +77,22 @@ def login_menu():
 def login_user():    
     cursor.execute(select_table_user_login)
     user_login_data = cursor.fetchall()
-    
-    global username, password
-    username = input('Enter your username: ')
-    if any(ulogin_tuple[2] == username for ulogin_tuple in user_login_data):
-        password = input('Enter your password: ')     
-        if any (ulogin_tuple[2] == username and ulogin_tuple[3] == password for ulogin_tuple in user_login_data):
-            print('Login successful!')  
-            login_entry_csv()
-            login_entry_excel()
-            con.commit()        
+    while True:
+        global username, password
+        username = input('Enter your username: ')
+        if any(ulogin_tuple[2] == username for ulogin_tuple in user_login_data):
+            password = input('Enter your password: ')     
+            if any (ulogin_tuple[2] == username and ulogin_tuple[3] == password for ulogin_tuple in user_login_data):
+                print('Login successful!')  
+                login_entry_csv()
+                login_entry_excel()
+                con.commit()       
+                break 
+            else:
+                print('username or password is incorrect!')   
         else:
-            print('username or password is incorrect!')   
-    else:
-        print('Username is not there! Write the correct username or create a new account!')
+            print('Username is not there! Write the correct username or create a new account!')
 
-def login_entry_csv():    
-    #login entry to csv
-    records_csv = {'datetime_column': [datetime.now()]}
-    df = pd.DataFrame(records_csv)    
-    write_header = not os.path.exists(csv_file)
-    df.to_csv(csv_file, index=False, mode='a', header=write_header)       
-        
-    #to be deleted after final call    
-    l = f'{current_time.year}, {current_time.month}, {current_time.day}, {current_time.hour}, {current_time.minute}'
-    with open('user_log.txt', 'a', encoding='utf-8') as f:
-        f.write(l + '\n')
-    #--------------------------------------------------------    
-
-def login_entry_excel():      
-    df = pd.read_csv('user_login.csv')
-
-    # Extract date and time components
-    df['datetime_column'] = pd.to_datetime(df['datetime_column'])
-    df['Year'] = df['datetime_column'].dt.year
-    df['Month'] = df['datetime_column'].dt.month
-    df['Date'] = df['datetime_column'].dt.day
-    df['Hour'] = df['datetime_column'].dt.hour
-
-    # Group by hour and count occurrences
-    df_counts = df.groupby(['Year', 'Month', 'Date', 'Hour']).size().reset_index(name='NumberOfOccurences')
-
-    # Path to your Excel file
-    excel_file = 'C:\\Users\\vijis\\python_ovningar\\CRUD_Submission_2\\login_history.xlsx'
-
-    # Check if the file exists
-    if os.path.isfile(excel_file):
-        # Load the existing workbook
-        book1 = load_workbook(excel_file)
-        # Append data to existing worksheet or create a new one if it doesn't exist
-        with pd.ExcelWriter(excel_file, engine='openpyxl', mode='a') as writer:
-            writer.workbook = book1
-            writer.sheets.update(dict((ws.title, ws) for ws in book1.worksheets))
-    else:
-        # Create a new workbook
-        writer = pd.ExcelWriter(excel_file, engine='openpyxl')
-
-    # Append the data to the Excel file without including the index
-    df_counts.to_excel(excel_file, index=False) 
 
 def update_menu_choice():
     print('Choose options to update your personal details')
@@ -240,52 +191,46 @@ def update_menu():
             result1 = cursor.fetchone()   
             if result1: 
                 user_login_id = result1[0]
-                new_password = input('Enter new password:')
-                cursor.execute(update_password, (new_password, user_login_id))
-                print('Password updated successfully')
-                con.commit()
+                while True:
+                    new_password = input('Enter new password:')
+                    pwd_validate = correctPW(new_password)
+                    confirm_new_password = input('Confirm new password:')
+                    if pwd_validate == confirm_new_password:
+                        cursor.execute(update_password, (confirm_new_password, user_login_id))
+                        print('New password updated successfully')
+                    else:
+                        print('Incorrect password! Try again!')
+                    con.commit()
             else:
                 print('Username not found')
 
         elif choice == '9':
             login_menu()
-            delete_old_data(csv_file)
+            #delete_old_data(csv_file)
 
-def delete_user_data():
-    try:
-        login_user()
-        select_user_id_query = "SELECT id FROM user WHERE username = %s AND password = %s"
-        cursor.execute(select_user_id_query, (username, password))
-        user_id = cursor.fetchone()
-
-        if user_id:
-            user_id = user_id[0]            
-            cursor.execute(delete_user_login_query, (user_id,))
-                
-            delete_user_query = "DELETE FROM user WHERE id = %s"
-            cursor.execute(delete_user_query, (user_id,))
-            con.commit()
-
-            print("User and associated login data deleted successfully!")
-        else:
-            print("No user found with the provided username and password.")
-    except mysql.connector.Error as error:
-        print("Error while deleting user and associated login data:", error)
 
 def delete_old_data(csv_file):
-    # Read CSV file into a pandas DataFrame
     df = pd.read_csv(csv_file)
-    # Convert timestamp column to datetime type
     df['datetime_column'] = pd.to_datetime(df['datetime_column'])
-    # Determine the current time and the time one hour ago
     hour_ago = current_time - timedelta(hours=1)
-    # Filter rows where timestamp is within the last hour
-    df = df[df['datetime_column'] >= hour_ago]
-    # Write the filtered DataFrame back to the CSV file
-    df.to_csv(csv_file, index=False)
-        
-
-            
-
+    df = df[df['datetime_column'] >= hour_ago]  # Check if the file exists before attempting to delete it
+    if os.path.exists(csv_file):
+        os.remove(csv_file)
+        print("CSV file deleted successfully.")
     
-        
+    df = pd.DataFrame(records_csv)
+    df.to_csv(csv_file, index=False)
+    print("CSV file recreated successfully.")
+
+# Function to delete and recreate the CSV file with new data
+def delete_and_recreate_csv():
+    # Check if the file exists before attempting to delete it
+    if os.path.exists(csv_file):
+        os.remove(csv_file)
+        print("CSV file deleted successfully.")
+    
+    df = pd.DataFrame(records_csv)
+    
+    # Write data to CSV file
+    df.to_csv(csv_file, index=False)
+    print("CSV file recreated successfully.")

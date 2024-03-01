@@ -1,4 +1,6 @@
-from database import *
+import time
+import schedule
+from database_connect import *
 from create_db_mysql import *
 from menu_choice_functions import *
 from validation_functions import *
@@ -16,15 +18,18 @@ def main_menu():
     while True:   
         menu_choice()        
         choice = input('Enter your choice: ')  
-        if choice == '1':            
+        if choice == '1':     
+            #Register new user       
             dt1 = create_new_user_reg()
             print('Registration details created')            
             cursor.execute(insert_user, dt1)
+            con.commit()
             
             dt2 = create_login()
             cursor.execute(insert_user_login, dt2)
             print('Login details registered')
-            
+            con.commit()
+
             login_entry_csv()
             login_entry_excel()
             
@@ -34,11 +39,12 @@ def main_menu():
             login_menu()          
                     
         elif choice == '3': 
+            #Mongo DB user message search and number o messages sent
             message_search_and_counts()
 
         elif choice == '4':                     
             print('You chose to exit the program, See you another time.')
-            delete_old_data(csv_file)
+            #delete_old_data(csv_file)
             exit()
 
         else:
@@ -62,6 +68,14 @@ def main():
             main_menu()
         finally:
             close_database_connection(conn, cursor)
+
+    # Schedule the task to delete and recreate the CSV file every hour
+    schedule.every().hour.do(delete_and_recreate_csv)
+
+    # Main loop to run the scheduled tasks
+    while True:
+        schedule.run_pending()
+        time.sleep(1)  # Sleep for 1 second to avoid high CPU usage
 
 
 if __name__ == '__main__':

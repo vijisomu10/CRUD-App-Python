@@ -1,3 +1,4 @@
+#All database queries for user and user_login
 create_table_user = """CREATE TABLE IF NOT EXISTS user(
                             user_id INT(11) AUTO_INCREMENT,
                             first_name VARCHAR(50) NOT NULL,
@@ -40,13 +41,10 @@ query_retrieve_userLogin = "SELECT user_login_id FROM user_login WHERE user_name
 
 update_FN = """UPDATE user SET first_name = %s WHERE user_id = %s"""
 update_LN = """UPDATE user SET last_name = %s WHERE user_id = %s"""
-update_street = """UPDATE user SET street_name = %s WHERE user_id = %s"""
+update_street = """UPDATE user SET street_name_address = %s WHERE user_id = %s"""
 update_city = """UPDATE user SET city_address = %s WHERE user_id = %s"""
 update_country = """UPDATE user SET country_address = %s WHERE user_id = %s"""
 update_postalcode = """UPDATE user SET postal_code_address = %s WHERE user_id = %s"""
 update_mobile = """UPDATE user SET mobile_number = %s WHERE user_id = %s"""
 
 update_password = """UPDATE user_login SET password = %s WHERE user_login_id = %s"""
-
-delete_user_query = """DELETE FROM user WHERE user_id = %s"""
-delete_user_login_query = """DELETE FROM user_login WHERE user_login_id = %s"""

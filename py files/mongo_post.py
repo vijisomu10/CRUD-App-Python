@@ -1,9 +1,7 @@
 from pymongo import MongoClient
-# Skapa en anslutning till MongoDB
+
 client = MongoClient ("mongodb://localhost:27017/")
-# Valj en databas
 db = client.crud_app
-# Valj en samling
 collection = db.postMessaages
 
 
@@ -21,6 +19,7 @@ def message_search_and_counts():
     print('1. Enter the title to search a message')
     print('2. No. of posts sent by particular user')
     user_input = input('Choose what do you like to do?')
+    
     if(user_input == '1'):
         input_title = input('Enter the title:')
         message = collection.find_one({"Title": input_title})
