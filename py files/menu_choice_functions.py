@@ -1,4 +1,5 @@
 import os
+import base64
 import pandas as pd
 from datetime import datetime, timedelta
 
@@ -57,11 +58,19 @@ def login_menu():
             # Call post_message to prompt user for message details
             user_choice = post_message()
             if user_choice:
-                ptitle, pmessage = user_choice
+                ptitle, pmessage, image_data, video_data, link = user_choice
+
+                # Convert image and video data to binary (if needed)
+                image_binary = base64.b64decode(image_data) if image_data else None
+                video_binary = base64.b64decode(video_data) if video_data else None
+
                 collection.insert_one({
                     "Username": username,
                     "Title": ptitle,
-                    "Message": pmessage
+                    "Message": pmessage,
+                    "Image": image_binary,  # Store image data as binary
+                    "Video": video_binary,  # Store video data as binary
+                    "Link": link
                 })
                 print('Message posted')
             client.close()
@@ -223,7 +232,9 @@ def delete_old_data(csv_file):
     print("CSV file recreated successfully.")
 
 # Function to delete and recreate the CSV file with new data
-def delete_and_recreate_csv():
+def delete_and_recreate_csv(csv_file):
+    df = pd.read_csv(csv_file)
+    df['datetime_column'] = pd.to_datetime(df['datetime_column'])
     # Check if the file exists before attempting to delete it
     if os.path.exists(csv_file):
         os.remove(csv_file)

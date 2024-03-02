@@ -68,15 +68,7 @@ def main():
             main_menu()
         finally:
             close_database_connection(conn, cursor)
-
-    # Schedule the task to delete and recreate the CSV file every hour
-    schedule.every().hour.do(delete_and_recreate_csv)
-
-    # Main loop to run the scheduled tasks
-    while True:
-        schedule.run_pending()
-        time.sleep(1)  # Sleep for 1 second to avoid high CPU usage
-
+            
 
 if __name__ == '__main__':
     main()       

@@ -5,7 +5,10 @@ def postal_code_validation():
     for attempt in range(max_attempts):
         postal_code = input('Enter your postal code: ')
         if postal_code.isdigit():
-            return postal_code  
+            if len(postal_code) == 5:
+                return postal_code  
+            else:
+                print('Write postal code in 5 digits. For example 12345')
         else:
             print('Please enter a valid postal code.')
     print('Exceeded maximum attempts. Exiting.')
@@ -17,9 +20,9 @@ def mobile_number_validation():
     max_attempts = 5
     for attempt in range(max_attempts):
         mobile_number = input('Enter your mobile number: ')
-        if(mobile_number.isdigit()):
+        if(mobile_number.isdigit()):            
             return mobile_number
-        else:
+        else:       
             print('Please enter a valid mobile number!')
     print('Exceeded maximum attempts. Exiting.')
     exit()
